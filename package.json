@@ -1,0 +1,11 @@
+{
+  "name": "telegram-tic-tac-toe",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "git@github.com:brickart/telegram-tic-tac-toe.git",
+  "author": "Artem Rebryk <artemrebrik8099@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "node-telegram-bot-api": "^0.40.0"
+  }
+}

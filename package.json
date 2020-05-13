@@ -6,6 +6,13 @@
   "author": "Artem Rebryk <artemrebrik8099@gmail.com>",
   "license": "MIT",
   "dependencies": {
-    "node-telegram-bot-api": "^0.40.0"
+    "express": "^4.17.1",
+    "koa": "^2.11.0",
+    "koa-router": "^8.0.8",
+    "node-telegram-bot-api": "^0.40.0",
+    "telegraf": "^3.38.0"
+  },
+  "devDependencies": {
+    "@types/node": "^14.0.1"
   }
 }

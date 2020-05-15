@@ -5,14 +5,25 @@
   "repository": "git@github.com:brickart/telegram-tic-tac-toe.git",
   "author": "Artem Rebryk <artemrebrik8099@gmail.com>",
   "license": "MIT",
+  "scripts": {
+    "dev": "",
+    "serve": "",
+    "lint-functions": "tslint --project functions",
+    "build-functions": "tsc --project functions",
+    "deploy": "firebase deploy --only functions"
+  },
   "dependencies": {
+    "dotenv": "^8.2.0",
     "express": "^4.17.1",
-    "koa": "^2.11.0",
-    "koa-router": "^8.0.8",
-    "node-telegram-bot-api": "^0.40.0",
-    "telegraf": "^3.38.0"
+    "firebase-admin": "^8.12.1",
+    "firebase-functions": "^3.6.1",
+    "node-telegram-bot-api": "^0.40.0"
   },
   "devDependencies": {
-    "@types/node": "^14.0.1"
+    "@types/node": "^14.0.1",
+    "@types/node-telegram-bot-api": "^0.40.3",
+    "ts-node-dev": "^1.0.0-pre.44",
+    "tslint": "^5.12.0",
+    "typescript": "^3.8.0"
   }
 }

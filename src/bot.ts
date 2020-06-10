@@ -1,132 +1,104 @@
 const TelegramBot = require('node-telegram-bot-api');
-import { Request, Response } from 'express';
+import { InlineKeyboardButton, InlineQueryResultArticle } from 'node-telegram-bot-api';
+
 import { TOKEN, URL } from './config';
-import { InlineKeyboardButton } from 'node-telegram-bot-api';
+import { GAME_NAME_MESSAGE, X_FIGURE, O_FIGURE } from './data';
+import { Game } from './game';
 
 const bot = new TelegramBot(TOKEN);
 bot.setWebHook(URL);
 
-const express = require('express');
-const app = express();
+export { bot };
 
-app.use(express.json());
-
-app.post(`/`, (req: Request, res: Response) => {
-  bot.processUpdate(req.body);
-  res.sendStatus(200);
-});
-
-app.listen(3000, () => {
-  console.log('listen on port 3000')
-})
-
-export { app };
-
-
+bot.on('polling_error', console.log)
 
 bot.on('message', (msg: any) => {
   // TODO: Make instructions!
   const chatId = msg.chat.id;
-
-  // send a message to the chat acknowledging receipt of their message
   bot.sendMessage(chatId, 'Received your message');
-});
-
-bot.on('callback_query', (query: any) => {
-  console.log({query})
-
-  const { inline_message_id } = query;
-  const gameData = parseGameData(query.data);
-  const winMessage = `A winner is ${query.from.first_name} ${query.from.last_name} \n${generateEndMessage(gameData)}`;
-
-  switch (gameData.action) {
-    case 1:
-      gameData.p1 = query.from.id;
-      gameData.tire = gameData.tire === 1 ? 2 : 1;
-      console.log({ gameData})
-      bot.editMessageText(`This is game ${decodeButtonText(gameData.tire)}`, {
-        inline_message_id,
-        reply_markup: {
-          inline_keyboard: gameData.p1 && gameData.p2 ? generateGameKeyboard(stringifyGameData(gameData)) : generateSetupKeyboard(gameData)
-        }
-      })
-      return;
-    case 2:
-      gameData.p2 = query.from.id;
-      gameData.tire = gameData.tire === 1 ? 2 : 1;
-      console.log({ gameData })
-      bot.editMessageText(`This is game ${decodeButtonText(gameData.tire)}`, {
-        inline_message_id,
-        reply_markup: {
-          inline_keyboard: gameData.p1 && gameData.p2 ? generateGameKeyboard(stringifyGameData(gameData)) : generateSetupKeyboard(gameData)
-        }
-      })
-      return;
-    case 3:
-      if (gameData.tire === 1 && gameData.p1 !== query.from.id) return;
-      if (gameData.tire === 2 && gameData.p2 !== query.from.id) return;
-      gameData.tire = gameData.tire === 1 ? 2 : 1; 
-      const win = isWin(gameData.game);
-      bot.editMessageText(win ? winMessage : `This is game ${decodeButtonText(gameData.tire)}`, {
-        inline_message_id,
-        reply_markup: {
-          inline_keyboard: win ? [] : generateGameKeyboard(stringifyGameData(gameData))
-        }
-      })
-      return;
-
-  
-    default:
-      break;
-  }
 });
 
 bot.on('inline_query', (query: any) => {
   // Start setup here
-  const data = '0,0,0,1,000000000';
-  const gameKeyboard = generateSetupKeyboard(parseGameData(data))
+  const game = new Game();
+  const keyboard = generateSetupKeyboard(game);
 
-  const results = [
+  const results: InlineQueryResultArticle[] = [
     {
       type: 'article',
       id: '1',
       title: 'Play',
-      input_message_content: { message_text: 'This is game' },
-      reply_markup: {
-        inline_keyboard: gameKeyboard
-      }
+      input_message_content: { message_text: createSetupMessage() },
+      reply_markup: { inline_keyboard: keyboard }
     }
   ];
 
   bot.answerInlineQuery(query.id, results, { cache_time: 0 });
 });
 
-function generateGameKeyboard(data: any) {
-  console.log('generate game keyboard')
+bot.on('callback_query', (query: any) => {
+  const { inline_message_id, data } = query;
+  const game = Game.fromString(data);
+
+  if (game.tire === 1 && game.p1 !== query.from.id) return;
+  if (game.tire === 2 && game.p2 !== query.from.id) return;
+
+  switch (game.action) {
+    case 0:
+      return; 
+    case 1:
+      console.log('action 1');
+      game.setPlayer1(query.from.id);
+      break;
+    case 2:
+      console.log('action 2');
+      game.setPlayer2(query.from.id);
+      break;
+    default:
+      break;
+  }
+
+
+  let msg = '';
+  let keyboard: InlineKeyboardButton[][] = [];
+  if (!game.isReady()) {
+    msg = createSetupMessage();
+    keyboard = generateSetupKeyboard(game);
+  } else if (!game.isWin()) {
+    game.setTire();
+    msg = createGameMessage(game.tire);
+    keyboard = generateGameKeyboard(game);
+  } else {
+    msg = createWinnerMessage(query.from.first_name, query.from.last_name, game.desk );
+  }
+
+  bot.editMessageText(msg, {
+    inline_message_id,
+    reply_markup: { inline_keyboard: keyboard }
+  })
+});
+
+function generateGameKeyboard(game: Game) {
   const result = [];
   let counter = 0;
   for (let i = 0; i < 3; i++) {
     const row = [];
     for (let j = 0; j < 3; j++) {
-      const gameData = parseGameData(data);
-      const currentValue = gameData.game[counter];
-      gameData.action = currentValue ? 0 : 3;
-      gameData.game[counter] = gameData.game[counter] || gameData.tire;
-      row.push({ text: decodeButtonText(currentValue), callback_data: stringifyGameData(gameData) })
+      const data = game.generateDataFoNextTireByButtonIndex(counter)
+      row.push(createKeyButton(decodeButtonText(game.desk[counter]), data))
       counter += 1;
-      console.log({ gameData })
     }
     result.push(row);
   }
   return result;
 }
 
-function generateEndMessage(gameData: any) {
+function generateEndMessage(desk: number[]) {
   let result = '';
   let counter = 0;
   for (let i = 0; i < 3; i++) {
     for (let j = 0; j < 3; j++) {
-      const currentValue = gameData.game[counter];
+      const currentValue = desk[counter];
       result += decodeStateText(currentValue)
       counter += 1;
     }
@@ -145,64 +117,40 @@ function decodeStateText(num: number) {
   return BUTTON_TEXT[num] || BUTTON_TEXT[0];
 }
 
-function parseGameData(str: string) {
-  const arrData = str.split(',');
-  return {
-    action: +arrData[0],
-    p1: +arrData[1],
-    p2: +arrData[2],
-    tire: +arrData[3],
-    game: arrData[4].split('').map((n: string) => +n)
-  }
-}
 
-function stringifyGameData(d: any) {
-  return `${d.action},${d.p1},${d.p2},${d.tire},${d.game.map((n: number) => `${n}`).join('')}`
-}
 
-bot.on('polling_error', console.log)
-
-function isWin(game: any) {
-  const combinations = [
-    [0, 1, 2], [3, 4, 5], [6, 7, 8],
-    [0, 3, 6], [1, 4, 7], [2, 5, 8],
-    [0, 4, 8], [2, 4, 6]
-  ];
-
-  function isArrayElementsTheSame(arr: any) {
-    return [...new Set(arr)].length == 1
-  };
-
-  for (let i = 0; i < combinations.length; i++) {
-    const combination = combinations[i];
-    const results = combination.map(index => game[index]);
-    if (isArrayElementsTheSame(results)) {
-      return results[0];
-    }
-  }
-  return 0;
-}
-
-function generateSetupKeyboard(data: any) {
+function generateSetupKeyboard(game: Game): InlineKeyboardButton[][] {
   const row = [];
-  if (data.p1 === 0) {
-    data.action = 1;
-    row.push({ text: '❌', callback_data: stringifyGameData(data) })
+  if (game.p1 === 0) {
+    game.action = 1;
+    row.push(createKeyButton(X_FIGURE, game.toString()));
   }
-  if (data.p2 === 0) {
-    data.action = 2;
-    row.push({ text: '⭕️', callback_data: stringifyGameData(data) })
+  if (game.p2 === 0) {
+    game.action = 2;
+    row.push(createKeyButton(O_FIGURE, game.toString()));
   }
   return [row];
 }
 
-// function create
 
+
+// function creat
+
+function createSetupMessage(): string {
+  return `${GAME_NAME_MESSAGE}\n\nPlease choose your symbol`;
+}
+
+function createGameMessage(tire: number): string {
+  return `${GAME_NAME_MESSAGE}\n\nPlayer turn ${decodeButtonText(tire)}`;
+}
+
+function createWinnerMessage(first_name: string = '', last_name: string = '', desk: number[]): string {
+  return `${GAME_NAME_MESSAGE}\n\nCongratulations! 🎉🎉🎉\nA winner is ${first_name} ${last_name || ''}\n${generateEndMessage(desk)}`;
+}
 
 function createKeyButton(text: string, data: string): InlineKeyboardButton {
   return { text, callback_data: data };
 }
-
 
 // 1 Setup keyboard
 // 2 Game process
@@ -211,9 +159,3 @@ function createKeyButton(text: string, data: string): InlineKeyboardButton {
 // 4 Instruction
 // 5 Bot setup[image, name, description...]
 // 6 Marketing[images, videos, ad]
-
-
-
-
-
-

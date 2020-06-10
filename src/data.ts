@@ -1,6 +1,6 @@
-const X_ICON = '❌';
-const O_ICON = '⭕️';
-const EMPTY_ICON = ' ';
-const EMPTY_TEXT_ICON = '⬜️';
+export const X_FIGURE = '❌';
+export const O_FIGURE = '⭕️';
+export const EMPTY_FIGURE = ' ';
+export const EMPTY_TEXT_FIGURE = '⬜️';
 
-const SETUP_MESSAGE = `T i c  T a c  T o e`;
+export const GAME_NAME_MESSAGE = `T i c  T a c  T o e`;

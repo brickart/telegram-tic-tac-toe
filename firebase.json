@@ -2,8 +2,16 @@
   "functions": {
     "source": "dist/functions",
     "predeploy": [
-      // "npm --prefix \"$RESOURCE_DIR\" run lint-functions",
-      "npm --prefix \"$RESOURCE_DIR\" run build-functions"
+      "npm run clean",
+      "npm run lint-functions",
+      "npm run lint-app",
+      "npm run build-functions",
+      "npm run build-app",
+      "npm run copy-deps",
+      "npm run install-deps"
+    ],
+    "ignore": [
+      "**/node_modules/**"
     ]
   }
 }

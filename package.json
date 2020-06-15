@@ -5,23 +5,32 @@
   "repository": "git@github.com:brickart/telegram-tic-tac-toe.git",
   "author": "Artem Rebryk <artemrebrik8099@gmail.com>",
   "license": "MIT",
+  "engines": {
+    "node": "10"
+  },
   "scripts": {
-    "dev": "",
-    "serve": "",
-    "lint-functions": "tslint --project functions",
+    "clean": "rimraf \"dist\"",
+    "build-app": "tsc --project src",
     "build-functions": "tsc --project functions",
+    "lint-app": "tslint --project src",
+    "lint-functions": "tslint --project functions",
+    "copy-deps": "cpx \"*{package.json,package-lock.json,yarn.lock}\" \"dist/functions\" -C",
+    "install-deps": "cd \"dist/functions\" && npm i --production",
     "deploy": "firebase deploy --only functions"
   },
   "dependencies": {
     "dotenv": "^8.2.0",
     "express": "^4.17.1",
     "firebase-admin": "^8.12.1",
-    "firebase-functions": "^3.6.1",
+    "firebase-functions": "^3.7.0",
     "node-telegram-bot-api": "^0.40.0"
   },
   "devDependencies": {
     "@types/node": "^14.0.1",
     "@types/node-telegram-bot-api": "^0.40.3",
+    "cpx": "^1.5.0",
+    "rimraf": "^3.0.2",
+    "ts-loader": "^7.0.5",
     "ts-node-dev": "^1.0.0-pre.44",
     "tslint": "^5.12.0",
     "typescript": "^3.8.0"

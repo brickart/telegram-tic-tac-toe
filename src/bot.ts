@@ -1,12 +1,14 @@
 const TelegramBot = require('node-telegram-bot-api');
 import { InlineKeyboardButton, InlineQueryResultArticle } from 'node-telegram-bot-api';
 
-import { TOKEN, URL } from './config';
+import { TOKEN, URL, isDevMode } from './config';
 import { GAME_NAME_MESSAGE, X_FIGURE, O_FIGURE } from './data';
 import { Game } from './game';
 
 const bot = new TelegramBot(TOKEN);
-bot.setWebHook(URL);
+if (isDevMode) {
+  bot.setWebHook(URL);
+}
 
 export { bot };
 
@@ -47,11 +49,9 @@ bot.on('callback_query', (query: any) => {
     case 0:
       return; 
     case 1:
-      console.log('action 1');
       game.setPlayer1(query.from.id);
       break;
     case 2:
-      console.log('action 2');
       game.setPlayer2(query.from.id);
       break;
     default:
@@ -72,10 +72,15 @@ bot.on('callback_query', (query: any) => {
     msg = createWinnerMessage(query.from.first_name, query.from.last_name, game.desk );
   }
 
-  bot.editMessageText(msg, {
-    inline_message_id,
-    reply_markup: { inline_keyboard: keyboard }
-  })
+  try {
+    bot.editMessageText(msg, {
+      inline_message_id,
+      reply_markup: { inline_keyboard: keyboard }
+    })
+  } catch (error) {
+    console.log('Error: ', error);
+  }
+  
 });
 
 function generateGameKeyboard(game: Game) {
@@ -117,8 +122,6 @@ function decodeStateText(num: number) {
   return BUTTON_TEXT[num] || BUTTON_TEXT[0];
 }
 
-
-
 function generateSetupKeyboard(game: Game): InlineKeyboardButton[][] {
   const row = [];
   if (game.p1 === 0) {
@@ -131,8 +134,6 @@ function generateSetupKeyboard(game: Game): InlineKeyboardButton[][] {
   }
   return [row];
 }
-
-
 
 // function creat
 

@@ -7,7 +7,7 @@
     ],
     "module": "commonjs",
     "strict": true,
-    "outDir": "../dist/functions/app",
+    "outDir": "../dist/app",
     "sourceMap": true,
     "target": "es2017",
     "baseUrl": "./",
